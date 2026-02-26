@@ -152,7 +152,7 @@ struct RootCanvas: View {
         }
         .onChange(of: self.voiceWake.lastTriggeredCommand) { _, newValue in
             guard let newValue else { return }
-            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = newValue.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
 
             self.toastDismissTask?.cancel()

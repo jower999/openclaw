@@ -1898,15 +1898,6 @@ extension TalkModeManager {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private static func providerDisplayName(_ providerID: String) -> String {
-        switch providerID {
-        case "elevenlabs": return "ElevenLabs"
-        case "edge": return "Edge"
-        case "openai": return "OpenAI"
-        default: return providerID
-        }
-    }
-
     func setTalkProviderOverride(_ provider: String?) {
         self.gatewayTalkProviderOverride = Self.normalizedTalkProviderID(provider)
         Task { await self.reloadConfig() }
@@ -1948,10 +1939,16 @@ extension TalkModeManager {
                     "talk config ignored: legacy payload unsupported on iOS beta; expected talk.provider/providers")
             }
             let providerIDs = ((talk?["providers"] as? [String: Any]) ?? [:]).keys.compactMap { Self.normalizedTalkProviderID($0) }
-            let sortedProviders = Array(Set(providerIDs)).sorted()
-            self.gatewayTalkAvailableProviders = sortedProviders.isEmpty ? [Self.defaultTalkProvider] : sortedProviders
-
             let activeProvider = selection?.provider ?? Self.defaultTalkProvider
+            let configuredProvider = Self.normalizedTalkProviderID(talk?["provider"] as? String)
+            var available = Set(providerIDs)
+            available.insert(Self.defaultTalkProvider)
+            available.insert(activeProvider)
+            if let configuredProvider {
+                available.insert(configuredProvider)
+            }
+            self.gatewayTalkAvailableProviders = Array(available).sorted()
+
             self.gatewayTalkActiveProvider = activeProvider
             let activeConfig = selection?.config
             self.defaultVoiceId = (activeConfig?["voiceId"] as? String)?
