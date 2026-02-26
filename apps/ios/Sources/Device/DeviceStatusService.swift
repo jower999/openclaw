@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import OpenClawKit
 import UIKit
@@ -26,12 +27,22 @@ final class DeviceStatusService: DeviceStatusServicing {
 
     func info() -> OpenClawDeviceInfoPayload {
         let device = UIDevice.current
-        let appVersion = DeviceInfoHelper.appVersion()
-        let appBuild = DeviceStatusService.fallbackAppBuild(DeviceInfoHelper.appBuild())
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
+        let rawBuild = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let appBuild = DeviceStatusService.fallbackAppBuild(rawBuild)
         let locale = Locale.preferredLanguages.first ?? Locale.current.identifier
+
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelIdentifier = withUnsafeBytes(of: &systemInfo.machine) { ptr in
+            String(bytes: ptr.prefix { $0 != 0 }, encoding: .utf8)
+        }?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedModelIdentifier = (modelIdentifier?.isEmpty == false) ? modelIdentifier! : "unknown"
+
         return OpenClawDeviceInfoPayload(
             deviceName: device.name,
-            modelIdentifier: DeviceInfoHelper.modelIdentifier(),
+            modelIdentifier: resolvedModelIdentifier,
             systemName: device.systemName,
             systemVersion: device.systemVersion,
             appVersion: appVersion,

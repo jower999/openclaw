@@ -29,8 +29,8 @@ final class TalkModeManager: NSObject {
     var gatewayTalkApiKeyConfigured: Bool = false
     var gatewayTalkDefaultModelId: String?
     var gatewayTalkDefaultVoiceId: String?
-    var gatewayTalkActiveProvider: String = Self.defaultTalkProvider
-    var gatewayTalkAvailableProviders: [String] = [Self.defaultTalkProvider]
+    var gatewayTalkActiveProvider: String = "elevenlabs"
+    var gatewayTalkAvailableProviders: [String] = ["elevenlabs"]
     var gatewayTalkProviderOverride: String?
 
     private enum CaptureMode {

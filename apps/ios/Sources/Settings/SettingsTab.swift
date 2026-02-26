@@ -381,9 +381,9 @@ struct SettingsTab: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        LabeledContent("Device", value: DeviceInfoHelper.deviceFamily())
-                        LabeledContent("Platform", value: DeviceInfoHelper.platformStringForDisplay())
-                        LabeledContent("OpenClaw", value: DeviceInfoHelper.openClawVersionString())
+                        LabeledContent("Device", value: self.deviceFamily())
+                        LabeledContent("Platform", value: self.platformStringForDisplay())
+                        LabeledContent("OpenClaw", value: self.openClawVersionString())
                     }
                 }
             }
@@ -591,6 +591,27 @@ struct SettingsTab: View {
         }
         let trimmed = self.appModel.gatewayStatusText.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Not connected" : trimmed
+    }
+
+    private func deviceFamily() -> String {
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad: return "iPad"
+        case .phone: return "iPhone"
+        default: return "iOS"
+        }
+    }
+
+    private func platformStringForDisplay() -> String {
+        let v = ProcessInfo.processInfo.operatingSystemVersion
+        let platform = UIDevice.current.userInterfaceIdiom == .pad ? "iPadOS" : "iOS"
+        return "\(platform) \(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"
+    }
+
+    private func openClawVersionString() -> String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
+        let build = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return build.isEmpty ? version : "\(version) (\(build))"
     }
 
     private func talkProviderDisplayName(_ provider: String) -> String {

@@ -942,19 +942,35 @@ extension GatewayConnectionController {
     }
 
     func _test_platformString() -> String {
-        DeviceInfoHelper.platformString()
+        let v = ProcessInfo.processInfo.operatingSystemVersion
+        let name = switch UIDevice.current.userInterfaceIdiom {
+        case .pad: "iPadOS"
+        case .phone: "iOS"
+        default: "iOS"
+        }
+        return "\(name) \(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"
     }
 
     func _test_deviceFamily() -> String {
-        DeviceInfoHelper.deviceFamily()
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad: return "iPad"
+        case .phone: return "iPhone"
+        default: return "iOS"
+        }
     }
 
     func _test_modelIdentifier() -> String {
-        DeviceInfoHelper.modelIdentifier()
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machine = withUnsafeBytes(of: &systemInfo.machine) { ptr in
+            String(bytes: ptr.prefix { $0 != 0 }, encoding: .utf8)
+        }
+        let trimmed = machine?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? "unknown" : trimmed
     }
 
     func _test_appVersion() -> String {
-        DeviceInfoHelper.appVersion()
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
     }
 
     func _test_setGateways(_ gateways: [GatewayDiscoveryModel.DiscoveredGateway]) {
