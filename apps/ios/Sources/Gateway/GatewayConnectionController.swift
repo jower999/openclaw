@@ -169,17 +169,44 @@ final class GatewayConnectionController {
         let stableID = self.manualStableID(host: host, port: resolvedPort)
         let stored = GatewayTLSStore.loadFingerprint(stableID: stableID)
         if resolvedUseTLS, stored == nil {
-            guard let url = self.buildGatewayURL(host: host, port: resolvedPort, useTLS: true) else { return }
-            guard let fp = await self.probeTLSFingerprint(url: url) else { return }
-            self.pendingTrustConnect = (url: url, stableID: stableID, isManual: true)
-            self.pendingTrustPrompt = TrustPrompt(
-                stableID: stableID,
-                gatewayName: "\(host):\(resolvedPort)",
+            guard let url = self.buildGatewayURL(host: host, port: resolvedPort, useTLS: true) else {
+                self.appModel?.gatewayStatusText = "Failed: invalid gateway URL"
+                return
+            }
+            if let fp = await self.probeTLSFingerprint(url: url) {
+                self.pendingTrustConnect = (url: url, stableID: stableID, isManual: true)
+                self.pendingTrustPrompt = TrustPrompt(
+                    stableID: stableID,
+                    gatewayName: "\(host):\(resolvedPort)",
+                    host: host,
+                    port: resolvedPort,
+                    fingerprintSha256: fp,
+                    isManual: true)
+                self.appModel?.gatewayStatusText = "Verify gateway TLS fingerprint"
+                return
+            }
+
+            // Some networks/devices fail pre-connect fingerprint probing even though the
+            // WSS endpoint is reachable. Fall back to first-use trust-on-connect so the
+            // user can proceed instead of silently no-oping on Connect.
+            let tofuTLSParams = GatewayTLSParams(
+                required: true,
+                expectedFingerprint: nil,
+                allowTOFU: true,
+                storeKey: stableID)
+            GatewaySettingsStore.saveLastGatewayConnectionManual(
                 host: host,
                 port: resolvedPort,
-                fingerprintSha256: fp,
-                isManual: true)
-            self.appModel?.gatewayStatusText = "Verify gateway TLS fingerprint"
+                useTLS: true,
+                stableID: stableID)
+            self.didAutoConnect = true
+            self.appModel?.gatewayStatusText = "Connecting…"
+            self.startAutoConnect(
+                url: url,
+                gatewayStableID: stableID,
+                tls: tofuTLSParams,
+                token: token,
+                password: password)
             return
         }
 
@@ -740,7 +767,8 @@ final class GatewayConnectionController {
             permissions: self.currentPermissions(),
             clientId: resolvedClientId,
             clientMode: "node",
-            clientDisplayName: displayName)
+            clientDisplayName: displayName,
+            includeDeviceIdentity: true)
     }
 
     private func resolvedClientId(defaults: UserDefaults, stableID: String?) -> String {

@@ -91,6 +91,7 @@ final class TalkModeManager: NSObject {
     private var incrementalSpeechTask: Task<Void, Never>?
     private var incrementalSpeechActive = false
     private var incrementalSpeechUsed = false
+    private var incrementalSpeechLastEnqueued: String?
     private var incrementalSpeechLanguage: String?
     private var incrementalSpeechBuffer = IncrementalSpeechBuffer()
     private var incrementalSpeechContext: IncrementalSpeechContext?
@@ -1196,6 +1197,7 @@ final class TalkModeManager: NSObject {
         self.incrementalSpeechActive = true
         self.incrementalSpeechUsed = false
         self.incrementalSpeechLanguage = nil
+        self.incrementalSpeechLastEnqueued = nil
         self.incrementalSpeechBuffer = IncrementalSpeechBuffer()
         self.incrementalSpeechContext = nil
         self.incrementalSpeechDirective = nil
@@ -1207,6 +1209,7 @@ final class TalkModeManager: NSObject {
         self.incrementalSpeechTask = nil
         self.cancelIncrementalPrefetch()
         self.incrementalSpeechActive = false
+        self.incrementalSpeechLastEnqueued = nil
         self.incrementalSpeechContext = nil
         self.incrementalSpeechDirective = nil
     }
@@ -1214,7 +1217,17 @@ final class TalkModeManager: NSObject {
     private func enqueueIncrementalSpeech(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+
+        if let last = self.incrementalSpeechLastEnqueued,
+           last.caseInsensitiveCompare(trimmed) == .orderedSame
+        {
+            // Guard against duplicate final chunk enqueue (commonly manifests as
+            // repeating the last sentence once at the end of a spoken reply).
+            return
+        }
+
         self.incrementalSpeechQueue.append(trimmed)
+        self.incrementalSpeechLastEnqueued = trimmed
         self.incrementalSpeechUsed = true
         if self.incrementalSpeechTask == nil {
             self.startIncrementalSpeechTask()
