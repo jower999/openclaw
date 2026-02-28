@@ -984,40 +984,6 @@ final class TalkModeManager: NSObject {
         do {
             let started = Date()
             let language = ElevenLabsTTSClient.validatedLanguage(directive?.language)
-
-            if self.gatewayTalkActiveProvider == "edge", let gateway = self.gateway {
-                do {
-                    let escaped = cleaned
-                        .replacingOccurrences(of: "\\", with: "\\\\")
-                        .replacingOccurrences(of: "\"", with: "\\\"")
-                        .replacingOccurrences(of: "\n", with: "\\n")
-                        .replacingOccurrences(of: "\r", with: "\\r")
-                        .replacingOccurrences(of: "\t", with: "\\t")
-                    let res = try await gateway.request(
-                        method: "tts.convert",
-                        paramsJSON: "{\"text\":\"\(escaped)\",\"includeBase64\":true}",
-                        timeoutSeconds: 25)
-                    if let json = try JSONSerialization.jsonObject(with: res) as? [String: Any],
-                       let audioBase64 = json["audioBase64"] as? String,
-                       let data = Data(base64Encoded: audioBase64),
-                       !data.isEmpty
-                    {
-                        self.lastPlaybackWasPCM = false
-                        let stream = Self.makeBufferedAudioStream(chunks: [data])
-                        let result = await self.mp3Player.play(stream: stream)
-                        if !result.finished, let interruptedAt = result.interruptedAt {
-                            self.lastInterruptedAtSeconds = interruptedAt
-                        }
-                        self.isSpeaking = false
-                        self.statusText = "Listening…"
-                        return
-                    }
-                } catch {
-                    self.logger.warning(
-                        "edge gateway tts failed: \(error.localizedDescription, privacy: .public); falling back")
-                }
-            }
-
             let requestedVoice = directive?.voiceId?.trimmingCharacters(in: .whitespacesAndNewlines)
             let resolvedVoice = self.resolveVoiceAlias(requestedVoice)
             if requestedVoice?.isEmpty == false, resolvedVoice == nil {
@@ -1193,9 +1159,7 @@ final class TalkModeManager: NSObject {
     }
 
     private func shouldUseIncrementalTTS() -> Bool {
-        // Edge playback is currently synthesized on the gateway and returned as a
-        // full audio payload, so we use non-incremental mode for that provider.
-        self.gatewayTalkActiveProvider != "edge"
+        true
     }
 
     private var isSpeechOutputActive: Bool {
