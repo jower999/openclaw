@@ -1012,9 +1012,17 @@ final class TalkModeManager: NSObject {
                         self.statusText = "Listening…"
                         return
                     }
+
+                    self.isSpeaking = false
+                    self.statusText = "Edge TTS failed"
+                    self.logger.warning("edge gateway tts returned no audio")
+                    return
                 } catch {
+                    self.isSpeaking = false
+                    self.statusText = "Edge TTS failed"
                     self.logger.warning(
-                        "edge gateway tts failed: \(error.localizedDescription, privacy: .public); falling back")
+                        "edge gateway tts failed: \(error.localizedDescription, privacy: .public)")
+                    return
                 }
             }
 
