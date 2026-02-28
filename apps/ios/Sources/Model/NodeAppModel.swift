@@ -1476,20 +1476,6 @@ private extension NodeAppModel {
         return NodeCapabilityRouter(handlers: handlers)
     }
 
-    private static func normalizeWatchNotifyParams(_ params: OpenClawWatchNotifyParams) -> OpenClawWatchNotifyParams {
-        OpenClawWatchNotifyParams(
-            title: params.title.trimmingCharacters(in: .whitespacesAndNewlines),
-            body: params.body.trimmingCharacters(in: .whitespacesAndNewlines),
-            priority: params.priority,
-            promptId: params.promptId?.trimmingCharacters(in: .whitespacesAndNewlines),
-            sessionKey: params.sessionKey?.trimmingCharacters(in: .whitespacesAndNewlines),
-            kind: params.kind?.trimmingCharacters(in: .whitespacesAndNewlines),
-            details: params.details?.trimmingCharacters(in: .whitespacesAndNewlines),
-            expiresAtMs: params.expiresAtMs,
-            risk: params.risk,
-            actions: params.actions)
-    }
-
     func handleWatchInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
         switch req.command {
         case OpenClawWatchCommand.status.rawValue:
