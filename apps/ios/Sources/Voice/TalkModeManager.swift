@@ -16,7 +16,7 @@ import Speech
 final class TalkModeManager: NSObject {
     private typealias SpeechRequest = SFSpeechAudioBufferRecognitionRequest
     private static let defaultModelIdFallback = "eleven_v3"
-    private static let defaultTalkProvider = "elevenlabs"
+    private static let defaultTalkProvider = "edge"
     private static let redactedConfigSentinel = "__OPENCLAW_REDACTED__"
     var isEnabled: Bool = false
     var isListening: Bool = false
@@ -29,8 +29,8 @@ final class TalkModeManager: NSObject {
     var gatewayTalkApiKeyConfigured: Bool = false
     var gatewayTalkDefaultModelId: String?
     var gatewayTalkDefaultVoiceId: String?
-    var gatewayTalkActiveProvider: String = "elevenlabs"
-    var gatewayTalkAvailableProviders: [String] = ["elevenlabs"]
+    var gatewayTalkActiveProvider: String = "edge"
+    var gatewayTalkAvailableProviders: [String] = ["edge"]
     var gatewayTalkProviderOverride: String?
 
     private enum CaptureMode {
@@ -1951,19 +1951,13 @@ extension TalkModeManager {
                 GatewayDiagnostics.log(
                     "talk config ignored: legacy payload unsupported on iOS beta; expected talk.provider/providers")
             }
-            let providerIDs = ((talk?["providers"] as? [String: Any]) ?? [:]).keys.compactMap { Self.normalizedTalkProviderID($0) }
-            let activeProvider = selection?.provider ?? Self.defaultTalkProvider
-            let configuredProvider = Self.normalizedTalkProviderID(talk?["provider"] as? String)
-            var available = Set(providerIDs)
-            available.insert(Self.defaultTalkProvider)
-            available.insert(activeProvider)
-            if let configuredProvider {
-                available.insert(configuredProvider)
-            }
-            self.gatewayTalkAvailableProviders = Array(available).sorted()
 
+            // iOS policy: always use Edge/system voice for Talk to avoid paid provider usage.
+            let edgeSelection = Self.selectTalkProviderConfig(talk, preferredProvider: "edge")
+            let activeProvider = "edge"
+            self.gatewayTalkAvailableProviders = ["edge"]
             self.gatewayTalkActiveProvider = activeProvider
-            let activeConfig = selection?.config
+            let activeConfig = edgeSelection?.config
             self.defaultVoiceId = (activeConfig?["voiceId"] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if let aliases = activeConfig?["voiceAliases"] as? [String: Any] {
