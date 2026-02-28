@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { loadConfig } from "../../config/config.js";
 import {
   OPENAI_TTS_MODELS,
@@ -81,11 +82,18 @@ export const ttsHandlers: GatewayRequestHandlers = {
       const channel = typeof params.channel === "string" ? params.channel.trim() : undefined;
       const result = await textToSpeech({ text, cfg, channel });
       if (result.success && result.audioPath) {
+        const includeBase64 = params.includeBase64 === true;
+        let audioBase64: string | undefined;
+        if (includeBase64) {
+          const bytes = await readFile(result.audioPath);
+          audioBase64 = bytes.toString("base64");
+        }
         respond(true, {
           audioPath: result.audioPath,
           provider: result.provider,
           outputFormat: result.outputFormat,
           voiceCompatible: result.voiceCompatible,
+          audioBase64,
         });
         return;
       }
